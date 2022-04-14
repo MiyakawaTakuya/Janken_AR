@@ -1,8 +1,9 @@
 //MediaPipeやOpenCVでの処理を記述
 let canvasElement;
 let canvasCtx;  //キャンバスコンテキストを使って絵を描く
-let ell; //手の位置や傾きを楕円
-let ratio;  //親指の立ち具合を
+// let ell; //手の位置や傾きを楕円
+let ratio_Pa1;  //パーの判定
+let ratio_Pa2;  //パーの判定
 let isStandingThumb = false;  //親指が立ち上がっているかどうかのフラグ
 let posThumbs = [0, 0];  //[x座標, y座標]といったように格納していく
 let thumbPos_x = 0;
@@ -79,19 +80,21 @@ function recvResults(results) {
             drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, { color: '#040404', lineWidth: 1 });  //大きくすると線が太くなる
             //関節を描画(MediaPipeのライブラリ)  コメントアウトすれば表示せずに済む
             drawLandmarks(canvasCtx, landmarks, { color: '#000000', lineWidth: 1, radius: 2 });
+            //orignal - openCVのファンクション landmarksの計算処理
             cvFunction(landmarks, width, height);
-            drawLightSaber(); //自作関数
+            //orignal - イメージを描画する関数
+            // drawLightSaber(); //自作関数
         }
     }
     canvasCtx.restore();
     if (nowPlaying) {
         hands.setOptions({
             selfieMode: true,  //画像を左右反転
-            maxNumHands: 2, //認識可能な手の最大数
-            modelComplexity: 1,//精度に関する設定(0~1)
-            minDetectionConfidence: 0.4,//手検出の信頼度 0〜1の値が帰ってきた時に幾つ以上の場合に手を判定するか
-            minTrackingConfidence: 0.3,//手追跡の信頼度
-            useCpuInference: false, //M1 MacのSafariの場合は1  crhomかfirefoxでやる
+            maxNumHands: 2,  //認識可能な手の最大数
+            modelComplexity: 1, //精度に関する設定(0~1)
+            minDetectionConfidence: 0.4, //手検出の信頼度 0〜1の値が帰ってきた時に幾つ以上の場合に手を判定するか
+            minTrackingConfidence: 0.3, //手追跡の信頼度
+            useCpuInference: false,  //M1 MacのSafariの場合は1  crhomかfirefoxでやる
         });
         //結果を処理する関数を登録
         console.log("setOptions_to_2");
@@ -102,36 +105,54 @@ function recvResults(results) {
 
 //手の中心や傾きを計算  関節の点群データlandmarksは画像の各幅全体を1と置き換えたパラメーターになっている。配列で０番目から20番目までの値が入っている
 function cvFunction(landmarks, width, height) {
+    ////イメージを重ね合わせるための楕円の用意
     //手の関節を保持する配列
-    let points = [];
-    //手のひらや親指の付け根付近以外の関節を取得
-    for (var i = 2; i < 21; i++) {  //手首の０、１は無視する
-        //0~1で表現されたx,yを画像のサイズに変換
-        points.push(landmarks[i].x * width);
-        points.push(landmarks[i].y * height);
-    }
-    //点の集まりをOpenCVで扱えるデータフォーマットmatに変換         
-    let mat = cv.matFromArray(points.length / 2, 1, cv.CV_32SC2, points);
-    //点の集まりにフィットする楕円を計算 
-    ell = cv.fitEllipse(mat);
+    // let points = [];
+    // //手のひらや親指の付け根付近以外の関節を取得
+    // for (var i = 0; i < 21; i++) {
+    //     //0~1で表現されたx,yを画像のサイズに変換
+    //     points.push(landmarks[i].x * width);
+    //     points.push(landmarks[i].y * height);
+    // }
+    //点の集まりをOpenCVで扱えるデータフォーマットmatに変換
+    // let mat = cv.matFromArray(points.length / 2, 1, cv.CV_32SC2, points);
+    //点の集まりにフィットする楕円を計算
+    // ell = cv.fitEllipse(mat);
     //メモリの解放(変数定義するとメモリを消費しているので不要になったら消す)
-    mat.delete();
+    // mat.delete();
 
-    //親指と人差し指までの距離
-    let dx = (landmarks[7].x - landmarks[4].x) * width;
-    let dy = (landmarks[7].y - landmarks[4].y) * height;
-    let distance1 = Math.sqrt(dx * dx + dy * dy);
-    //人差し指から小指までの距離
-    dx = (landmarks[7].x - landmarks[19].x) * width;
-    dy = (landmarks[7].y - landmarks[19].y) * height;
-    let distance2 = Math.sqrt(dx * dx + dy * dy);
-    //
-    ratio = distance1 / distance2;
-    //0.6:close, 1.3:sumb up 閉じる条件は少し甘めに0.9にする
-    //0.9~1.3を0~1に正規化
-    let close = 0.9;
-    let up = 1.3;
-    ratio = (Math.max(close, Math.min(up, ratio)) - close) / (up - close);
+    //手首と人差し指までの距離 index_d 
+    let dx = (landmarks[8].x - landmarks[0].x) * width;
+    let dy = (landmarks[8].y - landmarks[0].y) * height;
+    let index_d1 = Math.sqrt(dx * dx + dy * dy);
+    //人差し指付け根から手首までの距離
+    dx = (landmarks[5].x - landmarks[0].x) * width;
+    dy = (landmarks[5].y - landmarks[0].y) * height;
+    let index_d2 = Math.sqrt(dx * dx + dy * dy);
+    //人差し指の立ち具合
+    ratio_index = index_d1 / index_d2;
+    console.log(ratio_index);
+    let close = 1.2; //0.6:close, 1.3:sumb up 閉じる条件は少し甘めに0.9にする
+    let up = 1.6; //指が立ち上がっている状態
+    ratio_Pa1 = (Math.max(close, Math.min(up, ratio_index)) - close) / (up - close); //0~1に正規化
+    console.log("index_up : " + ratio_Pa1);
+
+    //手首付け根と人差し指までの距離 index_d 
+    dx = (landmarks[20].x - landmarks[0].x) * width;
+    dy = (landmarks[20].y - landmarks[0].y) * height;
+    let pinky_d1 = Math.sqrt(dx * dx + dy * dy);
+    //小指付け根から手首までの距離
+    dx = (landmarks[17].x - landmarks[0].x) * width;
+    dy = (landmarks[17].y - landmarks[0].y) * height;
+    let pinky_d2 = Math.sqrt(dx * dx + dy * dy);
+    //人差し指の立ち具合
+    ratio_pinky = pinky_d1 / pinky_d2;
+    // console.log(ratio_index);
+    close = 1.2; //0.6:close, 1.3:sumb up 閉じる条件は少し甘めに0.9にする
+    up = 1.6; //指が立ち上がっている状態
+    ratio_Pa2 = (Math.max(close, Math.min(up, ratio_pinky)) - close) / (up - close); //0~1に正規化
+    console.log("pinky_up : " + ratio_Pa2);
+    if (ratio_Pa1 == 1 && ratio_Pa2 == 1) console.log("janken - Pa");  //パーの状態
 }
 
 //ライトセイバーを表示
@@ -152,12 +173,12 @@ function drawLightSaber() {  //画像、位置X、位置Y、横幅、縦幅
         ell.size.width / 2.0, ell.size.height / 2.0,  //半径
         0, 0, 2 * Math.PI);    //角度と表示の開始・終了
     // canvasCtx.stroke();  //線で書くよ
-    //デフォルトサイズに倍数をかける
+    // デフォルトサイズに倍数をかける
     canvasCtx.scale(mul, mul);
     if (nowPlaying) {
-        canvasCtx.drawImage(beam, -beam.width / 2.0, 0, beam.width, beam.height); //画像の位置をあらかじめx方向に半分ずらす
-    } else if (nowPlaying_SW) {
-        canvasCtx.drawImage(beam_blue, -beam_blue.width / 2.0, 0, beam_blue.width, beam_blue.height);
+        // canvasCtx.drawImage(beam, -beam.width / 2.0, 0, beam.width, beam.height); //画像の位置をあらかじめx方向に半分ずらす
+    } else if (nowPlaying) {
+        // canvasCtx.drawImage(beam_blue, -beam_blue.width / 2.0, 0, beam_blue.width, beam_blue.height);
     }
 }
 
@@ -218,10 +239,10 @@ function thumb_deltaPos(landmark_4) {
 //ライトセイバー振った時の効果音
 function swingSaber_SE() {
     if (rightOrLeft == 1) {
-        console.log("swingRight");
+        // console.log("swingRight");
         SE_right.play();
     } else if (rightOrLeft == 2) {
-        console.log("swingLeft");
+        // console.log("swingLeft");
         SE_left.play();
     }
 }
