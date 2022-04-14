@@ -2,17 +2,19 @@
 let canvasElement;
 let canvasCtx;  //キャンバスコンテキストを使って絵を描く
 // let ell; //手の位置や傾きを楕円
-let ratio_Pa1;  //パーの判定
-let ratio_Pa2;  //パーの判定
-let isStandingThumb = false;  //親指が立ち上がっているかどうかのフラグ
-let posThumbs = [0, 0];  //[x座標, y座標]といったように格納していく
-let thumbPos_x = 0;
-let thumbPos_y = 0;
-let thumbPosPast_x = 0;
-let thumbPosPast_y = 0;
-let deltaPos_x = 0;
-let deltaPos_y = 0;
-let deltaPos = 0;
+let ratio_thumb;  //パーの判定
+let ratio_index;  //パーの判定
+let ratio_middle;  //パーの判定
+let ratio_pinky;
+let handState = 0;  //0 = 何でもない, 1=ぐー、２＝チョキ、３=パー
+// let posThumbs = [0, 0];  //[x座標, y座標]といったように格納していく
+// let thumbPos_x = 0;
+// let thumbPos_y = 0;
+// let thumbPosPast_x = 0;
+// let thumbPosPast_y = 0;
+// let deltaPos_x = 0;
+// let deltaPos_y = 0;
+// let deltaPos = 0;
 let flag_forLeaveSpace = 0;
 let rightOrLeft = 0;  //1ならright 2ならleft
 let SE_flag = 0;
@@ -121,9 +123,25 @@ function cvFunction(landmarks, width, height) {
     //メモリの解放(変数定義するとメモリを消費しているので不要になったら消す)
     // mat.delete();
 
-    //手首と人差し指までの距離 index_d 
-    let dx = (landmarks[8].x - landmarks[0].x) * width;
-    let dy = (landmarks[8].y - landmarks[0].y) * height;
+    //親指の指先から人差指付け根までの距離 thumb
+    let dx = (landmarks[4].x - landmarks[5].x) * width;
+    let dy = (landmarks[4].y - landmarks[5].y) * height;
+    let thumb_d1 = Math.sqrt(dx * dx + dy * dy);
+    //人差し指付け根と小指付け根の距離
+    dx = (landmarks[5].x - landmarks[17].x) * width;
+    dy = (landmarks[5].y - landmarks[17].y) * height;
+    let thumb_d2 = Math.sqrt(dx * dx + dy * dy);
+    //親指の立ち具合
+    ratio_thumb = thumb_d1 / thumb_d2;
+    // console.log(ratio_thumb);
+    let close = 0.3;
+    let up = 0.6;
+    ratio_thumb = (Math.max(close, Math.min(up, ratio_thumb)) - close) / (up - close); //0~1に正規化
+    // console.log("thumb_up : " + ratio_thumb);
+
+    //手首と人差し指までの距離 index
+    dx = (landmarks[8].x - landmarks[0].x) * width;
+    dy = (landmarks[8].y - landmarks[0].y) * height;
     let index_d1 = Math.sqrt(dx * dx + dy * dy);
     //人差し指付け根から手首までの距離
     dx = (landmarks[5].x - landmarks[0].x) * width;
@@ -131,13 +149,27 @@ function cvFunction(landmarks, width, height) {
     let index_d2 = Math.sqrt(dx * dx + dy * dy);
     //人差し指の立ち具合
     ratio_index = index_d1 / index_d2;
-    console.log(ratio_index);
-    let close = 1.2; //0.6:close, 1.3:sumb up 閉じる条件は少し甘めに0.9にする
-    let up = 1.6; //指が立ち上がっている状態
-    ratio_Pa1 = (Math.max(close, Math.min(up, ratio_index)) - close) / (up - close); //0~1に正規化
-    console.log("index_up : " + ratio_Pa1);
+    // console.log(ratio_index);
+    close = 1.2;
+    up = 1.6;
+    ratio_index = (Math.max(close, Math.min(up, ratio_index)) - close) / (up - close); //0~1に正規化
+    // console.log("index_up : " + ratio_index);
 
-    //手首付け根と人差し指までの距離 index_d 
+    //中指指先から手首までの距離 middle 
+    dx = (landmarks[12].x - landmarks[0].x) * width;
+    dy = (landmarks[12].y - landmarks[0].y) * height;
+    let middle_d1 = Math.sqrt(dx * dx + dy * dy);
+    //中指付け根から手首までの距離
+    dx = (landmarks[9].x - landmarks[0].x) * width;
+    dy = (landmarks[9].y - landmarks[0].y) * height;
+    let middle_d2 = Math.sqrt(dx * dx + dy * dy);
+    ratio_middle = middle_d1 / middle_d2;
+    close = 1.2;
+    up = 1.6;
+    ratio_middle = (Math.max(close, Math.min(up, ratio_middle)) - close) / (up - close); //0~1に正規化
+    // console.log("middle_up : " + ratio_middle);
+
+    //小指指先と手首までの距離 pinky 
     dx = (landmarks[20].x - landmarks[0].x) * width;
     dy = (landmarks[20].y - landmarks[0].y) * height;
     let pinky_d1 = Math.sqrt(dx * dx + dy * dy);
@@ -145,14 +177,23 @@ function cvFunction(landmarks, width, height) {
     dx = (landmarks[17].x - landmarks[0].x) * width;
     dy = (landmarks[17].y - landmarks[0].y) * height;
     let pinky_d2 = Math.sqrt(dx * dx + dy * dy);
-    //人差し指の立ち具合
     ratio_pinky = pinky_d1 / pinky_d2;
-    // console.log(ratio_index);
     close = 1.2; //0.6:close, 1.3:sumb up 閉じる条件は少し甘めに0.9にする
     up = 1.6; //指が立ち上がっている状態
-    ratio_Pa2 = (Math.max(close, Math.min(up, ratio_pinky)) - close) / (up - close); //0~1に正規化
-    console.log("pinky_up : " + ratio_Pa2);
-    if (ratio_Pa1 == 1 && ratio_Pa2 == 1) console.log("janken - Pa");  //パーの状態
+    ratio_pinky = (Math.max(close, Math.min(up, ratio_pinky)) - close) / (up - close); //0~1に正規化
+    // console.log("pinky_up : " + ratio_pinky);
+
+    //グーチョキパー判定 //TODO 正面から見た時はしっかり判定してくれる状態だが、横向きになると恐らくratio_thumbが機能しておらず判定できてない
+    if (ratio_thumb == 1 && ratio_index == 1 && ratio_middle == 1 && ratio_pinky == 1) {
+        handState = 3;
+        console.log("handState:Pa - " + handState);
+    } else if (ratio_thumb != 1 && ratio_index != 1 && ratio_middle != 1 && ratio_pinky != 1) {
+        handState = 1;
+        console.log("handState:Gu - " + handState);
+    } else if (ratio_thumb != 1 && ratio_index == 1 && ratio_middle == 1 && ratio_pinky != 1) {
+        handState = 2;
+        console.log("handState:Choki - " + handState);
+    }
 }
 
 //ライトセイバーを表示
