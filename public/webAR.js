@@ -2,19 +2,12 @@
 let canvasElement;
 let canvasCtx;  //キャンバスコンテキストを使って絵を描く
 // let ell; //手の位置や傾きを楕円
-let ratio_thumb;  //パーの判定
-let ratio_index;  //パーの判定
-let ratio_middle;  //パーの判定
+let ratio_thumb;
+let ratio_index;
+let ratio_middle;
 let ratio_pinky;
+let mode_janken = false;
 let handState = 0;  //0 = 何でもない, 1=ぐー、２＝チョキ、３=パー
-// let posThumbs = [0, 0];  //[x座標, y座標]といったように格納していく
-// let thumbPos_x = 0;
-// let thumbPos_y = 0;
-// let thumbPosPast_x = 0;
-// let thumbPosPast_y = 0;
-// let deltaPos_x = 0;
-// let deltaPos_y = 0;
-// let deltaPos = 0;
 let flag_forLeaveSpace = 0;
 let rightOrLeft = 0;  //1ならright 2ならleft
 let SE_flag = 0;
@@ -45,8 +38,8 @@ window.onload = function () {
         useCpuInference: false, //M1 MacのSafariの場合は1  crhomかfirefoxでやる
     });
     //結果を処理する関数を登録
-    console.log(hands);
-    hands.onResults(recvResults);
+    // console.log(hands);
+    if (mode_janken) hands.onResults(recvResults);
 
     //カメラの初期化
     const camera = new Camera(videoElement, {

@@ -1,11 +1,10 @@
 /** * 音声認識のインスタンス. */
-const BGM = new Audio('STAR WARS theme.mp3');
-let nowPlaying = false;
+// const BGM = new Audio('STAR WARS theme.mp3');
 
 function bgmStartButtonClick() {
-    BGM.volume = 0.4;
-    BGM.play();
-    nowPlaying = true;
+    // BGM.volume = 0.4;
+    // BGM.play();
+    mode_janken = true;
     let elm = document.getElementById('text');
     return new Promise((resolve, reject) => {
         let texts = "さーいしょはぐ-----.".split('');
@@ -32,7 +31,7 @@ function bgmStopButtonClick() {
     }
     let elm = document.getElementById('text');
     return new Promise((resolve, reject) => {
-        let texts = "Let's start Janken !!!".split('');
+        let texts = "ジャンケンを始めよう !!!".split('');
         function showMessage(texts, cb) {
             if (texts.length === 0) {
                 return cb();
@@ -52,7 +51,7 @@ function bgmStopButtonClick() {
 function startIntro() {
     let elm = document.getElementById('text');
     return new Promise((resolve, reject) => {
-        let texts = "Let's start Janken !!!".split('');
+        let texts = "ジャンケンを始めよう !!!".split('');
         function showMessage(texts, cb) {
             if (texts.length === 0) {
                 return cb();
