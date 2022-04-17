@@ -5,6 +5,7 @@ function bgmStartButtonClick() {
     // BGM.volume = 0.4;
     // BGM.play();
     mode_janken = true;
+    console.log("スイッチを押して" + mode_janken);
     let elm = document.getElementById('text');
     return new Promise((resolve, reject) => {
         let texts = "さーいしょはぐ-----.".split('');
@@ -25,9 +26,9 @@ function bgmStartButtonClick() {
 
 function bgmStopButtonClick() {
     if (nowPlaying) {
-        BGM.pause();
-        BGM.currentTime = 0;
-        nowPlaying = false;
+        // BGM.pause();
+        // BGM.currentTime = 0;
+        // nowPlaying = false;
     }
     let elm = document.getElementById('text');
     return new Promise((resolve, reject) => {

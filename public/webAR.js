@@ -39,7 +39,9 @@ window.onload = function () {
     });
     //結果を処理する関数を登録
     // console.log(hands);
-    if (mode_janken) hands.onResults(recvResults);
+    // console.log(mode_janken);
+    // if (mode_janken) hands.onResults(recvResults);
+    hands.onResults(recvResults);
 
     //カメラの初期化
     const camera = new Camera(videoElement, {
@@ -82,20 +84,20 @@ function recvResults(results) {
         }
     }
     canvasCtx.restore();
-    if (nowPlaying) {
-        hands.setOptions({
-            selfieMode: true,  //画像を左右反転
-            maxNumHands: 2,  //認識可能な手の最大数
-            modelComplexity: 1, //精度に関する設定(0~1)
-            minDetectionConfidence: 0.4, //手検出の信頼度 0〜1の値が帰ってきた時に幾つ以上の場合に手を判定するか
-            minTrackingConfidence: 0.3, //手追跡の信頼度
-            useCpuInference: false,  //M1 MacのSafariの場合は1  crhomかfirefoxでやる
-        });
-        //結果を処理する関数を登録
-        console.log("setOptions_to_2");
-        // hands.onResults(recv2Results);
-        hands.onResults(recvResults);
-    }
+    // if (nowPlaying) {
+    hands.setOptions({
+        selfieMode: true,  //画像を左右反転
+        maxNumHands: 2,  //認識可能な手の最大数
+        modelComplexity: 1, //精度に関する設定(0~1)
+        minDetectionConfidence: 0.4, //手検出の信頼度 0〜1の値が帰ってきた時に幾つ以上の場合に手を判定するか
+        minTrackingConfidence: 0.3, //手追跡の信頼度
+        useCpuInference: false,  //M1 MacのSafariの場合は1  crhomかfirefoxでやる
+    });
+    //結果を処理する関数を登録
+    console.log("setOptions_to_2");
+    // hands.onResults(recv2Results);
+    hands.onResults(recvResults);
+    // }
 }
 
 //手の中心や傾きを計算  関節の点群データlandmarksは画像の各幅全体を1と置き換えたパラメーターになっている。配列で０番目から20番目までの値が入っている
